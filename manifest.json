@@ -1,0 +1,31 @@
+{
+  "name": "3D Print Manager Pro",
+  "short_name": "Stampa3D Pro",
+  "description": "Gestionale e preventivatore per la stampa 3D",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1c1c1e",
+  "theme_color": "#007aff",
+  "orientation": "portrait",
+  "id": "/3d-print-manager-pro",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3233/3233497.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3233/3233497.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3233/3233497.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
