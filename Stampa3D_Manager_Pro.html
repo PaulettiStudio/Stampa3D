@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stampa3D Manager Pro</title>
+<meta name="theme-color" content="#E8650A">
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0}
+.header{background:#E8650A;color:#fff;padding:20px;text-align:center}
+.container{max-width:500px;margin:auto;padding:15px}
+.card{background:#fff;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{font-size:24px;font-weight:bold}
+input,select{width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:8px}
+button{width:100%;padding:12px;background:#E8650A;color:white;border:none;border-radius:10px;font-weight:bold}
+.result{font-size:28px;color:#E8650A;font-weight:bold;text-align:center}
+</style>
+</head>
+<body>
+<div class="header">
+<h2>🖨️ Stampa3D Manager Pro</h2>
+<p>Dashboard + Preventivi + Magazzino</p>
+</div>
+
+<div class="container">
+<div class="card">
+<h3>📊 Dashboard</h3>
+<div class="grid">
+<div><div class="stat" id="jobs">0</div>Stampe</div>
+<div><div class="stat" id="materials">0</div>Materiali</div>
+</div>
+</div>
+
+<div class="card">
+<h3>💰 Preventivo rapido</h3>
+<label>Grammi</label>
+<input id="grams" type="number">
+<label>Ore stampa</label>
+<input id="hours" type="number">
+<label>Costo €/g</label>
+<input id="cpg" type="number" step="0.0001" value="0.02">
+<label>Margine %</label>
+<input id="margin" type="number" value="50">
+<button onclick="calc()">Calcola</button>
+<div class="result" id="total">€0.00</div>
+</div>
+
+<div class="card">
+<h3>🚀 Prossimi step</h3>
+<ul>
+<li>Aggiungere PWA</li>
+<li>Import automatico GCODE</li>
+<li>Storico clienti</li>
+<li>Gestione magazzino avanzata</li>
+</ul>
+</div>
+</div>
+
+<script>
+function calc(){
+let g=+grams.value||0;
+let h=+hours.value||0;
+let cpg=+cpg.value||0;
+let m=+margin.value||0;
+let base=(g*cpg)+(h*0.25);
+let finale=base*(1+m/100);
+total.innerText='€'+finale.toFixed(2);
+}
+</script>
+</body>
+</html>
