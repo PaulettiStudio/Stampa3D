@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Print Manager Pro</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Stampa3D Pro">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#007aff">
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registrato con successo!', reg))
+                    .catch(err => console.log('Errore nella registrazione del Service Worker:', err));
+            });
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --secondary-bg: #ffffff;
+            --text-color: #000000;
+            --text-muted: #8e8e93;
+            --accent-color: #007aff;
+            --accent-green: #34c759;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3b30;
+            --border-color: #c6c6c8;
+            --card-bg: #ffffff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --secondary-bg: #1c1c1e;
+                --text-color: #ffffff;
+                --text-muted: #aeaea2;
+                --accent-color: #0a84ff;
+                --accent-green: #30d158;
+                --accent-orange: #ff9f0a;
+                --accent-red: #ff453a;
+                --border-color: #38383a;
+                --card-bg: #1c1c1e;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding-bottom: 90px;
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-left: 4px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 20px 0 12px 4px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .ios-list {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .ios-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--border-color);
+        }
+
+        .ios-item:last-child {
+            border-bottom: none;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            margin-left: 4px;
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-bg);
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.7;
+        }
+
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-success { background-color: var(--accent-green); color: white; }
+        .btn-danger { background-color: var(--accent-red); color: white; }
+        .btn-secondary { background-color: var(--border-color); color: var(--text-color); }
+
+        .btn-group-chips {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .chip {
+            flex: 1;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .chip.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .kpi-val {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .kpi-title {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #e5e5ea;
+            border-radius: 6px;
+            height: 12px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        @media (prefers-color-scheme: dark) {
+            .progress-container { background-color: #2c2c2e; }
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent-green);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 10px 10px 10px 36px;
+            border-radius: 10px;
+            border: none;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75px;
+            background-color: var(--secondary-bg);
+            border-top: 0.5px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding-top: 8px;
+            padding-bottom: env(safe-area-inset-bottom, 12px);
+            z-index: 1000;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-decoration: none;
+            width: 20%;
+            cursor: pointer;
+        }
+
+        .tab-item i {
+            font-size: 22px;
+            margin-bottom: 3px;
+        }
+
+        .tab-item.active {
+            color: var(--accent-color);
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-warning { background-color: rgba(255,149,0,0.2); color: var(--accent-orange); }
+        .badge-danger { background-color: rgba(255,59,48,0.2); color: var(--accent-red); }
+
+        .item-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+        .action-link {
+            font-size: 14px;
+            color: var(--accent-color);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .action-link.danger { color: var(--accent-red); }
+
+        .chart-container {
+            position: relative;
+            margin-bottom: 24px;
+            height: 220px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <div id="tab-home" class="tab-content active">
+            <h1>Dashboard</h1>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-title">Filamenti</div><div class="kpi-val" id="kpi-filamenti">0</div></div>
+                <div class="kpi-card"><div class="kpi-title">Scorte Totali</div><div class="kpi-val" id="kpi-peso">0 g</div></div>
+                <div class="kpi-card"><div class="kpi-title">Stampe Totali</div><div class="kpi-val" id="kpi-stampe">0</div></div>
+                <div class="kpi-card"><div class="kpi-title">Ore Lavoro</div><div class="kpi-val" id="kpi-ore">0h</div></div>
+                <div class="kpi-card"><div class="kpi-title">Costi Totali</div><div class="kpi-val" id="kpi-costi">€ 0.00</div></div>
+                <div class="kpi-card"><div class="kpi-title">Fatturato Stimato</div><div class="kpi-val" id="kpi-ricavi">€ 0.00</div></div>
+            </div>
+            
+            <h2>Ultime Stampe</h2>
+            <div id="recent-jobs-list"></div>
+        </div>
+
+        <div id="tab-magazzino" class="tab-content">
+            <h1>Magazzino</h1>
+            <button class="btn btn-primary" style="margin-bottom: 16px;" onclick="openMaterialModal()"><i class="fa-solid fa-plus"></i> Aggiungi Bobina</button>
+            <div id="material-list"></div>
+        </div>
+
+        <div id="tab-preventivo" class="tab-content">
+            <h1>Nuovo Preventivo</h1>
+            <div class="card">
+                <div class="form-group">
+                    <label>Nome Progetto</label>
+                    <input type="text" id="prev-nome" class="form-control" placeholder="es. Supporto GoPro">
+                </div>
+                <div class="form-group">
+                    <label>Incolla Dati Slicer (Opzionale)</label>
+                    <textarea id="prev-slicer-input" class="form-control" style="height: 60px; font-size:13px;" placeholder="Incolla qui il testo dello slicer (es. 'Weight: 87g' o 'Time: 4h 32m')" oninput="parseSlicerData()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Materiale da Usare</label>
+                    <select id="prev-materiale" class="form-control" onchange="calcolaPreventivo()"></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Peso (grammi)</label>
+                        <input type="number" id="prev-peso" class="form-control" placeholder="85" oninput="calcolaPreventivo()">
+                    </div>
+                    <div class="form-group">
+                        <label>Tempo Stampa (ore)</label>
+                        <input type="number" id="prev-tempo" class="form-control" placeholder="4.5" step="0.1" oninput="calcolaPreventivo()">
+                    </div>
+                </div>
+            </div>
+
+            <h2>Resoconto Costi Reali</h2>
+            <div class="ios-list">
+                <div class="ios-item"><span>Costo Materiale</span><span id="res-materiale">€ 0.00</span></div>
+                <div class="ios-item"><span>Consumo Energetico</span><span id="res-energia">€ 0.00</span></div>
+                <div class="ios-item"><span>Ammortamento Macchina</span><span id="res-usura">€ 0.00</span></div>
+                <div class="ios-item" style="font-weight: bold; border-top: 1px dashed var(--border-color);"><span>COSTO REALE TOTALE</span><span id="res-costo-reale" style="color: var(--accent-red);">€ 0.00</span></div>
+            </div>
+
+            <h2>Margine & Profitto</h2>
+            <div class="card">
+                <label style="font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Seleziona Margine Rapido</label>
+                <div class="btn-group-chips">
+                    <div class="chip" id="chip-30" onclick="setMargine(30)">30%</div>
+                    <div class="chip active" id="chip-50" onclick="setMargine(50)">50%</div>
+                    <div class="chip" id="chip-100" onclick="setMargine(100)">100%</div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 16px;">
+                    <label>Prezzo Consigliato App</label>
+                    <input type="text" id="prev-suggerito" class="form-control" readonly style="opacity: 0.7;">
+                </div>
+                <div class="form-group">
+                    <label>Prezzo Final Effettivo (€)</label>
+                    <input type="number" id="prev-manuale" class="form-control" placeholder="0.00" step="0.1">
+                </div>
+
+                <button class="btn btn-success" style="margin-top: 8px;" onclick="salvaStampa()"><i class="fa-solid fa-floppy-disk"></i> Salva Stampa e Riduci Scorte</button>
+            </div>
+        </div>
+
+        <div id="tab-statistiche" class="tab-content">
+            <h1>Analisi & Storico</h1>
+            
+            <div class="card">
+                <h3 style="font-size:16px; margin-bottom:10px;">Consumo Mensile Materiale</h3>
+                <div class="chart-container">
+                    <canvas id="chart-materiali"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="font-size:16px; margin-bottom:10px;">Andamento Economico (Fatturato vs Costi)</h3>
+                <div class="chart-container">
+                    <canvas id="chart-economico"></canvas>
+                </div>
+            </div>
+
+            <h2>Storico Stampe</h2>
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-storico" class="search-bar" placeholder="Cerca progetto o materiale..." oninput="renderStorico()">
+            </div>
+            <div id="storico-list"></div>
+        </div>
+
+        <div id="tab-impostazioni" class="tab-content">
+            <h1>Impostazioni Kobra X</h1>
+            <div class="card">
+                <div class="form-group">
+                    <label>Nome Stampante</label>
+                    <input type="text" id="set-name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Assorbimento Medio (Watt)</label>
+                    <input type="number" id="set-power" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Costo Energia (€/kWh)</label>
+                    <input type="number" id="set-kwh" class="form-control" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Costo Acquisto Stampante (€)</label>
+                    <input type="number" id="set-cost" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Vita Utile Stimata (Ore)</label>
+                    <input type="number" id="set-lifespan" class="form-control">
+                </div>
+                <button class="btn btn-primary" onclick="salvaImpostazioni()"><i class="fa-solid fa-check"></i> Salva Impostazioni</button>
+            </div>
+
+            <h2>Backup e Ripristino Dati</h2>
+            <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn btn-secondary" onclick="esportaBackup()"><i class="fa-solid fa-download"></i> Esporta Backup JSON</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importa Backup JSON</button>
+                <input type="file" id="importFile" style="display:none" onchange="importaBackup(event)">
+                <button class="btn btn-danger" onclick="resetAssoluto()"><i class="fa-solid fa-trash-can"></i> Reset Fabbrica App</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="material-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:2000; padding:16px; align-items:center; justify-content:center;">
+        <div class="card" style="width:100%; max-width:400px; margin-bottom:0;">
+            <h3 id="modal-title" style="margin-bottom:16px;">Nuovo Materiale</h3>
+            <input type="hidden" id="mat-id">
+            <div class="form-row">
+                <div class="form-group"><label>Marca</label><input type="text" id="mat-brand" class="form-control" placeholder="Anycubic"></div>
+                <div class="form-group"><label>Tipo</label><input type="text" id="mat-type" class="form-control" placeholder="PLA"></div>
+            </div>
+            <div class="form-group"><label>Colore</label><input type="text" id="mat-color" class="form-control" placeholder="Nero"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Peso Iniziale (g)</label><input type="number" id="mat-weight-init" class="form-control" placeholder="1000"></div>
+                <div class="form-group"><label>Peso Corrente (g)</label><input type="number" id="mat-weight-rem" class="form-control" placeholder="1000"></div>
+            </div>
+            <div class="form-group"><label>Costo Bobina (€)</label><input type="number" id="mat-price" class="form-control" placeholder="19.99" step="0.01"></div>
+            <div class="item-actions" style="margin-top:16px;">
+                <button class="btn btn-secondary" style="padding:10px;" onclick="closeMaterialModal()">Annulla</button>
+                <button class="btn btn-primary" style="padding:10px;" onclick="salvaMateriale()">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="switchTab('home', this)"><i class="fa-solid fa-house"></i>Home</div>
+        <div class="tab-item" onclick="switchTab('magazzino', this)"><i class="fa-solid fa-box-open"></i>Magazzino</div>
+        <div class="tab-item" onclick="switchTab('preventivo', this)"><i class="fa-solid fa-calculator"></i>Preventivo</div>
+        <div class="tab-item" onclick="switchTab('statistiche', this)"><i class="fa-solid fa-chart-line"></i>Analisi</div>
+        <div class="tab-item" onclick="switchTab('impostazioni', this)"><i class="fa-solid fa-gear"></i>Impostazioni</div>
+    </div>
+
+    <script>
+        let db = {
+            materials: [],
+            jobs: [],
+            settings: { printerName: "Kobra X", power: 200, kwh: 0.25, printerCost: 350, lifespan: 5000 }
+        };
+        let currentMargin = 50;
+        let chartMatInstance = null;
+        let chartEcoInstance = null;
+
+        function initDB() {
+            const localData = localStorage.getItem('3dprint_manager_data');
+            if (localData) {
+                db = JSON.parse(localData);
+            } else {
+                localStorage.setItem('3dprint_manager_data', JSON.stringify(db));
+            }
+            caricaImpostazioniInUI();
+            renderAll();
+        }
+
+        function salvaNelStorage() {
+            localStorage.setItem('3dprint_manager_data', JSON.stringify(db));
+            renderAll();
+        }
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            element.classList.add('active');
+            if(tabId === 'statistiche') {
+                setTimeout(renderCharts, 100);
+            }
+        }
+
+        function caricaImpostazioniInUI() {
+            document.getElementById('set-name').value = db.settings.printerName;
+            document.getElementById('set-power').value = db.settings.power;
+            document.getElementById('set-kwh').value = db.settings.kwh;
+            document.getElementById('set-cost').value = db.settings.printerCost;
+            document.getElementById('set-lifespan').value = db.settings.lifespan;
+        }
+
+        function salvaImpostazioni() {
+            db.settings.printerName = document.getElementById('set-name').value;
+            db.settings.power = parseFloat(document.getElementById('set-power').value);
+            db.settings.kwh = parseFloat(document.getElementById('set-kwh').value);
+            db.settings.printerCost = parseFloat(document.getElementById('set-cost').value);
+            db.settings.lifespan = parseFloat(document.getElementById('set-lifespan').value);
+            salvaNelStorage();
+            alert("Impostazioni salvate con successo!");
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderMagazzino();
+            aggiornaSelezionaMaterialePreventivo();
+            renderStorico();
+        }
+
+        function renderDashboard() {
+            document.getElementById('kpi-filamenti').innerText = db.materials.length;
+            let pesoTotale = db.materials.reduce((acc, curr) => acc + parseFloat(curr.weightRemaining), 0);
+            document.getElementById('kpi-peso').innerText = pesoTotale + " g";
+            document.getElementById('kpi-stampe').innerText = db.jobs.length;
+            
+            let oreTotali = db.jobs.reduce((acc, curr) => acc + parseFloat(curr.hours), 0);
+            document.getElementById('kpi-ore').innerText = oreTotali.toFixed(1) + "h";
+
+            let costiTotali = db.jobs.reduce((acc, curr) => acc + parseFloat(curr.realCost), 0);
+            document.getElementById('kpi-costi').innerText = "€ " + costiTotali.toFixed(2);
+
+            let ricaviTotali = db.jobs.reduce((acc, curr) => acc + parseFloat(curr.sellingPrice), 0);
+            document.getElementById('kpi-ricavi').innerText = "€ " + ricaviTotali.toFixed(2);
+
+            let recentHTML = "";
+            let stampeInverse = [...db.jobs].reverse().slice(0, 3);
+            stampeInverse.forEach(job => {
+                recentHTML += `
+                <div class="ios-list">
+                    <div class="ios-item" style="font-weight:600;"><span>${job.project}</span><span style="color:var(--accent-green);">€ ${parseFloat(job.sellingPrice).toFixed(2)}</span></div>
+                    <div class="ios-item" style="font-size:14px; color:var(--text-muted);"><span>Data: ${job.date}</span><span>${job.grams}g / ${job.hours}h</span></div>
+                </div>`;
+            });
+            document.getElementById('recent-jobs-list').innerHTML = recentHTML || "<p style='padding:4px; color:var(--text-muted);'>Nessuna stampa recente.</p>";
+        }
+
+        function renderMagazzino() {
+            let html = "";
+            db.materials.forEach(mat => {
+                let percentuale = Math.round((mat.weightRemaining / mat.weightInitial) * 100);
+                let badgeHTML = "";
+                if(mat.weightRemaining < 100) badgeHTML = `<span class="badge badge-danger">Esaurimento (Sotto 100g)</span>`;
+                else if(percentuale < 20) badgeHTML = `<span class="badge badge-warning">Scorta Bassa (&lt;20%)</span>`;
+
+                html += `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:start; width:100%;">
+                        <div style="flex-grow:1;">
+                            <strong style="font-size:18px;">${mat.brand} ${mat.type}</strong> <span style="color:var(--text-muted);">(${mat.color})</span>
+                            <div style="margin-top:4px;">${badgeHTML}</div>
+                        </div>
+                        <div style="text-align:right; font-size:14px;">
+                            <strong>${mat.weightRemaining}g</strong> / ${mat.weightInitial}g
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${percentuale}%; background-color: ${percentuale < 20 ? 'var(--accent-red)' : 'var(--accent-green)'}"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:8px;">
+                        <span>Costo originario: € ${mat.purchasePrice}</span>
+                        <span>Valore stimato al g: € ${(mat.purchasePrice / mat.weightInitial).toFixed(4)}</span>
+                    </div>
+                    <div class="item-actions">
+                        <span class="action-link" onclick="openMaterialModal(${mat.id})">Modifica</span>
+                        <span class="action-link danger" onclick="eliminaMateriale(${mat.id})">Elimina</span>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('material-list').innerHTML = html || "<p style='text-align:center; color:var(--text-muted); padding:20px;'>Nessun materiale in magazzino.</p>";
+        }
+
+        function renderStorico() {
+            let query = document.getElementById('search-storico').value.toLowerCase();
+            let html = "";
+            let filtrati = db.jobs.filter(j => j.project.toLowerCase().includes(query));
+
+            [...filtrati].reverse().forEach(job => {
+                html += `
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <strong>${job.project}</strong>
+                        <span style="color:var(--text-muted); font-size:13px;">${job.date}</span>
+                    </div>
+                    <div style="font-size:14px; color:var(--text-muted); margin-bottom:8px;">
+                        Uso: ${job.grams}g | Tempo: ${job.hours}h
+                    </div>
+                    <div class="ios-list" style="margin-bottom:0; background-color:var(--bg-color);">
+                        <div class="ios-item" style="padding:6px 12px; font-size:13px;"><span>Costo Reale:</span><span>€ ${parseFloat(job.realCost).toFixed(2)}</span></div>
+                        <div class="ios-item" style="padding:6px 12px; font-size:13px; font-weight:bold;"><span>Prezzo Finale:</span><span style="color:var(--accent-green);">€ ${parseFloat(job.sellingPrice).toFixed(2)}</span></div>
+                    </div>
+                    <div class="item-actions">
+                        <span class="action-link danger" onclick="eliminaStampa(${job.id})">Elimina Record</span>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('storico-list').innerHTML = html || "<p style='text-align:center; color:var(--text-muted); padding:20px;'>Nessuna stampa trovata.</p>";
+        }
+
+        function openMaterialModal(id = null) {
+            if(id) {
+                let mat = db.materials.find(m => m.id === id);
+                document.getElementById('modal-title').innerText = "Modifica Materiale";
+                document.getElementById('mat-id').value = mat.id;
+                document.getElementById('mat-brand').value = mat.brand;
+                document.getElementById('mat-type').value = mat.type;
+                document.getElementById('mat-color').value = mat.color;
+                document.getElementById('mat-weight-init').value = mat.weightInitial;
+                document.getElementById('mat-weight-rem').value = mat.weightRemaining;
+                document.getElementById('mat-price').value = mat.purchasePrice;
+            } else {
+                document.getElementById('modal-title').innerText = "Nuovo Materiale";
+                document.getElementById('mat-id').value = "";
+                document.getElementById('mat-brand').value = "";
+                document.getElementById('mat-type').value = "PLA";
+                document.getElementById('mat-color').value = "";
+                document.getElementById('mat-weight-init').value = "1000";
+                document.getElementById('mat-weight-rem').value = "1000";
+                document.getElementById('mat-price').value = "";
+            }
+            document.getElementById('material-modal').style.display = "flex";
+        }
+
+        function closeMaterialModal() {
+            document.getElementById('material-modal').style.display = "none";
+        }
+
+        function salvaMateriale() {
+            let id = document.getElementById('mat-id').value;
+            let brand = document.getElementById('mat-brand').value || "Generico";
+            let type = document.getElementById('mat-type').value || "PLA";
+            let color = document.getElementById('mat-color').value || "Nero";
+            let weightInitial = parseFloat(document.getElementById('mat-weight-init').value) || 1000;
+            let weightRemaining = parseFloat(document.getElementById('mat-weight-rem').value) || 1000;
+            let purchasePrice = parseFloat(document.getElementById('mat-price').value) || 0;
+
+            if(id) {
+                let mat = db.materials.find(m => m.id == id);
+                mat.brand = brand; mat.type = type; mat.color = color;
+                mat.weightInitial = weightInitial; mat.weightRemaining = weightRemaining;
+                mat.purchasePrice = purchasePrice;
+            } else {
+                let newMat = { id: Date.now(), brand, type, color, weightInitial, weightRemaining, purchasePrice };
+                db.materials.push(newMat);
+            }
+            salvaNelStorage();
+            closeMaterialModal();
+        }
+
+        function eliminaMateriale(id) {
+            if(confirm("Sei sicuro di voler eliminare questa bobina?")) {
+                db.materials = db.materials.filter(m => m.id !== id);
+                salvaNelStorage();
+            }
+        }
+
+        function aggiornaSelezionaMaterialePreventivo() {
+            let select = document.getElementById('prev-materiale');
+            select.innerHTML = "";
+            db.materials.forEach(m => {
+                select.innerHTML += `<option value="${m.id}">${m.brand} ${m.type} - ${m.color} (${m.weightRemaining}g restanti)</option>`;
+            });
+        }
+
+        function parseSlicerData() {
+            let text = document.getElementById('prev-slicer-input').value;
+            
+            let weightMatch = text.match(/(\d+(?:\.\d+)?)\s*g/i) || text.match(/weight:\s*(\d+(?:\.\d+)?)/i);
+            if(weightMatch) {
+                document.getElementById('prev-peso').value = Math.round(parseFloat(weightMatch[1]));
+            }
+
+            let timeMatch = text.match(/(\d+)\s*h\s*(\d+)\s*m/i);
+            if(timeMatch) {
+                let ore = parseInt(timeMatch[1]) + (parseInt(timeMatch[2]) / 60);
+                document.getElementById('prev-tempo').value = ore.toFixed(1);
+            } else {
+                let hoursOnly = text.match(/(\d+(?:\.\d+)?)\s*h/i) || text.match(/time:\s*(\d+(?:\.\d+)?)/i);
+                if(hoursOnly) {
+                    document.getElementById('prev-tempo').value = parseFloat(hoursOnly[1]).toFixed(1);
+                }
+            }
+            calcolaPreventivo();
+        }
+
+        function setMargine(val) {
+            currentMargin = val;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            document.getElementById(`chip-${val}`).classList.add('active');
+            calcolaPreventivo();
+        }
+
+        function calcolaPreventivo() {
+            let matId = document.getElementById('prev-materiale').value;
+            let grammi = parseFloat(document.getElementById('prev-peso').value) || 0;
+            let ore = parseFloat(document.getElementById('prev-tempo').value) || 0;
+
+            if(!matId) return;
+            let mat = db.materials.find(m => m.id == matId);
+
+            let costoMateriale = (mat.purchasePrice / mat.weightInitial) * grammi;
+            let costoEnergia = (db.settings.power / 1000) * ore * db.settings.kwh;
+            let ammortamentoUsura = (db.settings.printerCost / db.settings.lifespan) * ore;
+            let costoRealeTotale = costoMateriale + costoEnergia + ammortamentoUsura;
+
+            let prezzoSuggerito = costoRealeTotale * (1 + (currentMargin / 100));
+
+            document.getElementById('res-materiale').innerText = "€ " + costoMateriale.toFixed(2);
+            document.getElementById('res-energia').innerText = "€ " + costoEnergia.toFixed(2);
+            document.getElementById('res-usura').innerText = "€ " + ammortamentoUsura.toFixed(2);
+            document.getElementById('res-costo-reale').innerText = "€ " + costoRealeTotale.toFixed(2);
+            
+            document.getElementById('prev-suggerito').value = "€ " + prezzoSuggerito.toFixed(2);
+            
+            if(document.activeElement !== document.getElementById('prev-manuale')) {
+                document.getElementById('prev-manuale').value = prezzoSuggerito.toFixed(2);
+            }
+        }
+
+        function salvaStampa() {
+            let nome = document.getElementById('prev-nome').value || "Progetto Anonimo";
+            let matId = document.getElementById('prev-materiale').value;
+            let grammi = parseFloat(document.getElementById('prev-peso').value) || 0;
+            let ore = parseFloat(document.getElementById('prev-tempo').value) || 0;
+            let prezzoFinale = parseFloat(document.getElementById('prev-manuale').value) || 0;
+
+            if(!matId || grammi <= 0) {
+                alert("Dati incompleti o non validi.");
+                return;
+            }
+
+            let mat = db.materials.find(m => m.id == matId);
+            let costoMateriale = (mat.purchasePrice / mat.weightInitial) * grammi;
+            let costoEnergia = (db.settings.power / 1000) * ore * db.settings.kwh;
+            let ammortamentoUsura = (db.settings.printerCost / db.settings.lifespan) * ore;
+            let costoRealeTotale = costoMateriale + costoEnergia + ammortamentoUsura;
+
+            mat.weightRemaining = Math.max(0, mat.weightRemaining - grammi);
+
+            let dataOggi = new Date().toISOString().split('T')[0];
+            let nuovoJob = {
+                id: Date.now(),
+                date: dataOggi,
+                project: nome,
+                materialId: matId,
+                grams: grammi,
+                hours: ore,
+                realCost: costoRealeTotale,
+                sellingPrice: prezzoFinale
+            };
+
+            db.jobs.push(nuovoJob);
+            salvaNelStorage();
+
+            document.getElementById('prev-nome').value = "";
+            document.getElementById('prev-slicer-input').value = "";
+            document.getElementById('prev-peso').value = "";
+            document.getElementById('prev-tempo').value = "";
+            document.getElementById('prev-manuale').value = "";
+            
+            alert("Stampa salvata!");
+            switchTab('home', document.querySelectorAll('.tab-item')[0]);
+        }
+
+        functionGrid = {
+            materials: [], jobs: []
+        }
+
+        function eliminaStampa(id) {
+            if(confirm("Eliminare questa stampa dallo storico?")) {
+                db.jobs = db.jobs.filter(j => j.id !== id);
+                salvaNelStorage();
+            }
+        }
+
+        function renderCharts() {
+            const mesi = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+            let consumiMesi = Array(12).fill(0);
+            let ricaviMesi = Array(12).fill(0);
+            let costiMesi = Array(12).fill(0);
+
+            db.jobs.forEach(job => {
+                let data = new Date(job.date);
+                let meseIndice = data.getMonth();
+                consumiMesi[meseIndice] += job.grams;
+                ricaviMesi[meseIndice] += job.sellingPrice;
+                costiMesi[meseIndice] += job.realCost;
+            });
+
+            if (chartMatInstance) chartMatInstance.destroy();
+            if (chartEcoInstance) chartEcoInstance.destroy();
+
+            let ctxMat = document.getElementById('chart-materiali').getContext('2d');
+            chartMatInstance = new Chart(ctxMat, {
+                type: 'bar',
+                data: {
+                    labels: mesi,
+                    datasets: [{
+                        label: 'Grammi Usati (g)',
+                        data: consumiMesi,
+                        backgroundColor: '#34c759',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            let ctxEco = document.getElementById('chart-economico').getContext('2d');
+            chartEcoInstance = new Chart(ctxEco, {
+                type: 'line',
+                data: {
+                    labels: mesi,
+                    datasets: [
+                        { label: 'Fatturato (€)', data: ricaviMesi, borderColor: '#007aff', tension: 0.2, fill: false },
+                        { label: 'Costo Vivo (€)', data: costiMesi, borderColor: '#ff3b30', tension: 0.2, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function esportaBackup() {
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+            let downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "stampa3d_manager_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importaBackup(event) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if(importedData.materials && importedData.jobs && importedData.settings) {
+                        db = importedData;
+                        salvaNelStorage();
+                        caricaImpostazioniInUI();
+                        alert("Backup importato!");
+                    }
+                } catch(err) { alert("File non valido."); }
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        function resetAssoluto() {
+            if(confirm("Cancellare tutto definitivamente?")) {
+                localStorage.removeItem('3dprint_manager_data');
+                location.reload();
+            }
+        }
+
+        window.onload = initDB;
+    </script>
+</body>
+</html>
