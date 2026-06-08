@@ -319,6 +319,20 @@
         }
         .action-link.danger { color: var(--accent-red); }
     </style>
+    <!-- Collegamento al Manifest PWA -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#007aff">
+    
+    <!-- Script di registrazione del Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registrato con successo!', reg))
+                    .catch(err => console.log('Errore nella registrazione del Service Worker:', err));
+            });
+        }
+    </script>
 </head>
 <body>
 
