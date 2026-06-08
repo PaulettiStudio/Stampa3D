@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stampa3D Manager PRO</title>
+<meta name="theme-color" content="#E8650A">
+<style>
+body{margin:0;font-family:system-ui;background:#f4f5f7}
+header{background:#E8650A;color:#fff;padding:18px;text-align:center;position:sticky;top:0}
+.wrap{max-width:700px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1}
+button{border:none;border-radius:10px;padding:10px;background:#E8650A;color:#fff;font-weight:700}
+input,select{width:100%;padding:10px;margin:4px 0 10px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tab{display:none}.tab.active{display:block}
+.stat{font-size:28px;font-weight:700;color:#E8650A}
+.small{color:#666;font-size:12px}
+.material{border:1px solid #eee;padding:10px;border-radius:10px;margin:8px 0}
+.progress{height:8px;background:#eee;border-radius:99px;overflow:hidden}
+.fill{height:100%;background:#E8650A}
+.result{background:#fff4ec;padding:10px;border-radius:10px}
+.total{font-size:30px;font-weight:700;color:#E8650A}
+</style>
+</head>
+<body>
+<header>
+<h2>🖨️ Stampa3D Manager PRO</h2>
+<div>Dashboard • Magazzino • Preventivi • Statistiche</div>
+</header>
+
+<div class="wrap">
+<div class="tabs">
+<button onclick="show('dash')">Home</button>
+<button onclick="show('mag')">Magazzino</button>
+<button onclick="show('prev')">Preventivi</button>
+<button onclick="show('set')">Impostazioni</button>
+</div>
+
+<div id="dash" class="tab active">
+<div class="card">
+<h3>Dashboard</h3>
+<div class="grid">
+<div><div class="stat" id="dMat">0</div><div class="small">Materiali</div></div>
+<div><div class="stat" id="dJob">0</div><div class="small">Stampe</div></div>
+<div><div class="stat" id="dGrams">0</div><div class="small">Grammi usati</div></div>
+<div><div class="stat" id="dCost">€0</div><div class="small">Costi reali</div></div>
+</div>
+</div>
+</div>
+
+<div id="mag" class="tab">
+<div class="card">
+<h3>Nuovo materiale</h3>
+<input id="brand" placeholder="Marca">
+<input id="type" placeholder="PLA / PETG / TPU">
+<input id="color" placeholder="Colore">
+<input id="weight" type="number" placeholder="Peso totale (g)">
+<input id="cost" type="number" step="0.01" placeholder="Costo acquisto (€)">
+<button onclick="addMaterial()">Salva materiale</button>
+</div>
+<div id="materials"></div>
+</div>
+
+<div id="prev" class="tab">
+<div class="card">
+<h3>Preventivo</h3>
+<input id="project" placeholder="Nome progetto">
+<select id="material"></select>
+<input id="grams" type="number" placeholder="Grammi da slicer">
+<input id="hours" type="number" step="0.1" placeholder="Ore da slicer">
+<input id="margin" type="number" value="50" placeholder="Margine %">
+<button onclick="calculate()">Calcola e salva</button>
+<div id="result" class="result" style="display:none;margin-top:10px">
+<div>Materiale: <span id="rMat"></span></div>
+<div>Energia: <span id="rEnergy"></span></div>
+<div>Usura: <span id="rWear"></span></div>
+<hr>
+<div>Costo reale: <b id="rReal"></b></div>
+<div>Prezzo consigliato:</div>
+<div class="total" id="rSell"></div>
+</div>
+</div>
+
+<div class="card">
+<h3>Storico stampe</h3>
+<div id="jobs"></div>
+</div>
+</div>
+
+<div id="set" class="tab">
+<div class="card">
+<h3>Kobra X</h3>
+<input id="power" type="number" value="200">
+<label>Potenza media (W)</label>
+<input id="kwh" type="number" step="0.01" value="0.25">
+<label>Costo energia €/kWh</label>
+<input id="printer" type="number" value="350">
+<label>Costo stampante €</label>
+<input id="life" type="number" value="2000">
+<label>Vita stimata ore</label>
+<button onclick="saveSettings()">Salva impostazioni</button>
+</div>
+</div>
+</div>
+
+<script>
+let materials=JSON.parse(localStorage.getItem("mats")||"[]");
+let jobs=JSON.parse(localStorage.getItem("jobs")||"[]");
+let settings=JSON.parse(localStorage.getItem("settings")||'{"power":200,"kwh":0.25,"printer":350,"life":2000}');
+
+function persist(){
+localStorage.setItem("mats",JSON.stringify(materials));
+localStorage.setItem("jobs",JSON.stringify(jobs));
+localStorage.setItem("settings",JSON.stringify(settings));
+}
+
+function show(id){
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+function addMaterial(){
+materials.push({
+brand:brand.value,type:type.value,color:color.value,
+weight:+weight.value,remaining:+weight.value,cost:+cost.value
+});
+persist();render();
+}
+
+function calculate(){
+let m=materials[material.value];
+if(!m){alert("Aggiungi un materiale");return;}
+let g=+grams.value||0,h=+hours.value||0,marginPct=+margin.value||0;
+let matCost=g*(m.cost/m.weight);
+let energy=h*(settings.power/1000)*settings.kwh;
+let wear=h*(settings.printer/settings.life);
+let real=matCost+energy+wear;
+let sell=real*(1+marginPct/100);
+
+m.remaining=Math.max(0,m.remaining-g);
+
+jobs.unshift({
+name:project.value||"Progetto",
+grams:g,hours:h,real:real,sell:sell,date:new Date().toLocaleDateString("it-IT")
+});
+
+rMat.innerText="€"+matCost.toFixed(2);
+rEnergy.innerText="€"+energy.toFixed(2);
+rWear.innerText="€"+wear.toFixed(2);
+rReal.innerText="€"+real.toFixed(2);
+rSell.innerText="€"+sell.toFixed(2);
+result.style.display="block";
+
+persist();render();
+}
+
+function saveSettings(){
+settings={
+power:+power.value,
+kwh:+kwh.value,
+printer:+printer.value,
+life:+life.value
+};
+persist();
+alert("Impostazioni salvate");
+}
+
+function render(){
+document.getElementById("dMat").innerText=materials.length;
+document.getElementById("dJob").innerText=jobs.length;
+document.getElementById("dGrams").innerText=jobs.reduce((a,b)=>a+b.grams,0).toFixed(0);
+document.getElementById("dCost").innerText="€"+jobs.reduce((a,b)=>a+b.real,0).toFixed(0);
+
+material.innerHTML="";
+materials.forEach((m,i)=>{
+material.innerHTML+=`<option value="${i}">${m.brand} ${m.type} ${m.color}</option>`;
+});
+
+materialsDiv="";
+materials.forEach((m,i)=>{
+let p=(m.remaining/m.weight)*100;
+materialsDiv+=`
+<div class="card material">
+<b>${m.brand} ${m.type}</b><br>${m.color}<br>
+${m.remaining.toFixed(0)}g / ${m.weight}g
+<div class="progress"><div class="fill" style="width:${p}%"></div></div>
+Costo/g: €${(m.cost/m.weight).toFixed(4)}
+</div>`;
+});
+document.getElementById("materials").innerHTML=materialsDiv;
+
+document.getElementById("jobs").innerHTML=jobs.map(j=>
+`<div class="material"><b>${j.name}</b><br>${j.date}<br>Costo €${j.real.toFixed(2)} | Vendita €${j.sell.toFixed(2)}</div>`
+).join("");
+
+power.value=settings.power;
+kwh.value=settings.kwh;
+printer.value=settings.printer;
+life.value=settings.life;
+}
+render();
+</script>
+</body>
+</html>
